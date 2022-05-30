@@ -1,0 +1,86 @@
+name: Enabler App Example Outerloop
+
+# Manually trigger this workflow. TODO change when we have a stable version
+on: workflow_dispatch
+
+env:
+  BUILD_ID: $GITHUB_SHA
+
+jobs:
+  parse:
+    name: Parse descriptor
+    runs-on: ubuntu-latest
+    outputs:
+      microservices: ${{ steps.dependencies.outputs.microservices }}
+    steps:
+      - name: Pull
+        uses: actions/checkout@v3
+
+      - name: Generate Build ID
+        # ATM the build ID is the commit hash, already available at $GITHUB_SHA.
+        # This step only print it out
+        run: echo ${{ env.BUILD_ID }}
+
+      - name: Intall dependencies
+        run: |
+          wget https://github.com/mikefarah/yq/releases/download/v4.25.1/yq_linux_amd64 -O /usr/bin/yq
+          chmod +x /usr/bin/yq
+
+      - name: Discover devspace dependencies
+        id: dependencies
+        run: echo "::set-output name=microservices::$(echo $(yq '.dependencies' -o json < devspace.yaml))"
+
+  checks:
+    name: Run checks
+    runs-on: ubuntu-latest
+    needs: parse
+    strategy:
+      fail-fast: false
+      matrix:
+        microservice_name: ${{ fromJSON(needs.parse.outputs.microservices).*.name }}
+        # TODO commands are to be defined with inner loops
+        command: [linting, test]
+    steps:
+      - name: Pull
+        uses: actions/checkout@v3
+
+      - name: Install devspace
+        uses: loft-sh/setup-devspace@main
+
+      - name: Check
+        run: devspace run ${{ matrix.microservice_name }}.${{ matrix.command }}
+
+  build-images:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    needs: [checks, parse]
+    env:
+      OCI_REGISTRY: quay.io
+      OCI_REGISTRY_OWNER: buildo
+    strategy:
+      matrix:
+        microservice: ${{ fromJSON(needs.parse.outputs.microservices) }}
+    steps:
+      - name: Pull
+        uses: actions/checkout@v3
+
+      - name: Setup buildpacks
+        uses: buildpacks/github-actions/setup-pack@v4.7.0
+
+      - name: Login to OCI Registry
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Build
+        run: |
+          tag=${{ env.BUILD_ID }}
+          image_name=${{ env.OCI_REGISTRY }}/${{ env.OCI_REGISTRY_OWNER }}/${GITHUB_REPOSITORY#*/}-${{ matrix.microservice.name }}:$tag
+          microservice_path=${{ matrix.microservice.source.path }}
+          pack build $image_name \
+          --path $microservice_path \
+          --builder paketobuildpacks/builder:full \
+          --env-file ${{ matrix.microservice.source.path }}/.env.buildpack \
+          --publish
