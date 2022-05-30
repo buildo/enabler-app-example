@@ -1,0 +1,13 @@
+name: Enabler App Example Outerloop
+
+# Manually trigger this workflow. TODO change when we have a stable version
+on: workflow_dispatch
+
+jobs:
+  outerloop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: buildo/.github/workflows/reusable-enabler-app-example-outerloop.yaml
+        with:
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
