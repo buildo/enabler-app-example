@@ -7,7 +7,7 @@ jobs:
   outerloop:
     runs-on: ubuntu-latest
     steps:
-      - uses: buildo/.github/workflows/reusable-enabler-app-example-outerloop.yaml
+      - uses: buildo/.github/workflows/reusable-enabler-app-example-outerloop.yaml@main
         with:
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
