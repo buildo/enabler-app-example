@@ -1,0 +1,53 @@
+version: v1beta11
+
+commands:
+  - name: start
+    command: "devspace enter -l app.kubernetes.io/component=${NAME} -- npm start"
+  - name: linting
+    command: echo running frontend linting...
+  - name: test
+    command: echo running frontend test...
+
+deployments:
+  - name: ${NAME}
+    helm:
+      componentChart: true
+      values:
+        service:
+          ports:
+            - port: ${PORT}
+        containers:
+          - image: loftsh/javascript:latest
+dev:
+  ports:
+    - labelSelector:
+        app.kubernetes.io/component: ${NAME}
+      forward:
+        - port: ${PORT}
+  sync:
+    - name: ${NAME}
+      labelSelector:
+        app.kubernetes.io/component: ${NAME}
+      disableDownload: true
+      uploadExcludePaths:
+        - node_modules/
+      onUpload:
+        exec:
+          - name: npm-install
+            command: |-
+              npm install
+            onChange: ["./package.json"]
+  replacePods:
+    - labelSelector:
+        app.kubernetes.io/component: ${NAME}
+      patches:
+        - op: replace
+          path: spec.containers[0].command
+          value:
+            - sleep
+        - op: replace
+          path: spec.containers[0].args
+          value:
+            - "9999999"
+        - op: remove
+          path: spec.containers[0].securityContext

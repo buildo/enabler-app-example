@@ -1,0 +1,18 @@
+{
+  "name": "my-app",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "cors": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  },
+  "scripts": {
+    "dev": "nodemon --inspect=0.0.0.0:9229 index.js",
+    "start": "PORT=3000 node index.js"
+  }
+}

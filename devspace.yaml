@@ -1,0 +1,27 @@
+version: v1beta11
+
+dependencies:
+  - name: frontend
+    vars:
+      - name: NAME
+        value: frontend
+      - name: PORT
+        value: 3030
+    source:
+      path: ./frontend
+    dev:
+      ports: true
+      sync: true
+      replacePods: true
+  - name: backend
+    vars:
+      - name: NAME
+        value: backend
+      - name: PORT
+        value: 3000
+    source:
+      path: ./backend
+    dev:
+      ports: true
+      sync: true
+      replacePods: true
